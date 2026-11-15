@@ -55,9 +55,6 @@
     const busy = ui.busy('Making PDF…');
     let box;
     try {
-      const miss = TP.urdu.missing(pack);
-      if (miss.length) { busy.update('Translating to Urdu…'); await TP.urdu.fillMissing(pack, miss); await TP.packs.save(pack); }
-      busy.update('Making PDF…');
       const sheet = TP.sheets.factorySheet(pack);
       box = await stage(sheet);
       const { jsPDF } = window.jspdf;

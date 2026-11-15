@@ -17,21 +17,14 @@
       catch (e) { ui.toast('Could not save! ' + e.message, 'error'); }
     }, 500);
     const saveNow = () => save.flush(); // pictures are saved straight away
-    const sections = {}; // key -> redraw()
 
-    /* A section card that can redraw itself. urduKey adds the Urdu switch. */
-    function section(key, title, urduKey, buildBody) {
+    /* A section card that can redraw itself. */
+    function section(key, title, buildBody) {
       const card = h('section', { class: 'card', id: 'sec-' + key });
       const redraw = () => {
         card.innerHTML = '';
-        const right = urduKey ? ui.toggle(TP.urdu.isOn(pack, urduKey), (on) => {
-          TP.urdu.setSection(pack, urduKey, on); save(); redraw();
-        }, 'Urdu', 'small') : null;
-        TP.add(card, h('div', { class: 'card-head' }, h('h2', null, title), right ? h('div', { class: 'card-tools' }, right) : null));
-        TP.add(card, buildBody(redraw));
-        if (urduKey && TP.urdu.isOn(pack, urduKey)) TP.add(card, TP.urdu.checkPanel(pack, urduKey, save));
+        TP.add(card, h('div', { class: 'card-head' }, h('h2', null, title)), buildBody(redraw));
       };
-      sections[key] = redraw;
       redraw();
       return card;
     }
@@ -206,12 +199,11 @@
     /* ---------- Extra notes ---------- */
     function notesSection(redraw) {
       return h('div', null,
-        h('p', { class: 'muted small' }, 'Tick "Client" for notes the client should see. Use the small Urdu switch on a line to show only that line in Urdu.'),
+        h('p', { class: 'muted small' }, 'Tick "Client" for notes the client should see.'),
         pack.notes.map((n, i) => h('div', { class: 'note-row' },
           h('span', { class: 'note-num' }, i + 1 + '.'),
           ui.text(n, 'text', save, { placeholder: i === 0 ? 'e.g. Deep pockets on shorts' : 'Extra note' }),
           h('div', { class: 'note-tools' },
-            ui.toggle(n.urdu, (on) => { n.urdu = on; if (!on) pack.urdu.sections.notes = false; save(); redraw(); }, 'Urdu', 'small'),
             ui.checkbox(n.showClient, (on) => { n.showClient = on; save(); }, 'Client'),
             ui.iconBtn('🗑', 'Delete line', () => { pack.notes.splice(i, 1); save(); redraw(); }, 'danger-ghost')))),
         ui.btn('+ Add more lines', () => { pack.notes.push(model.blankNote()); save(); redraw(); }, 'secondary'));
@@ -224,25 +216,18 @@
       h('datalist', { id: 'dl-fabric-types' }, s.fabricTypes.map((p) => h('option', { value: p }))),
       h('datalist', { id: 'dl-fabric-stores' }, s.fabricStores.map((p) => h('option', { value: p }))));
 
-    const redrawAll = () => Object.values(sections).forEach((r) => r());
 
     TP.add(root, 
       datalists,
-      h('div', { class: 'card urdu-bar' },
-        h('div', null, h('strong', null, 'Urdu for the Factory Version'),
-          h('div', { class: 'muted small' }, 'Use the Urdu switch on each section, or:')),
-        h('div', { class: 'btn-row' },
-          ui.btn('All Urdu', () => { TP.urdu.setAll(pack, true); save(); redrawAll(); }, 'secondary'),
-          ui.btn('All English', () => { TP.urdu.setAll(pack, false); save(); redrawAll(); }, 'secondary'))),
-      section('order', 'Order details', 'order', orderSection),
-      section('designs', 'Design pictures', null, designSection),
-      section('logo', 'Logo', null, logoSection),
-      section('fabric', 'Fabric', 'fabric', fabricSection),
-      section('pattern', 'Pattern', 'pattern', patternSection),
-      section('printing', 'Printing', 'printing', printingSection),
-      section('colours', 'Colours and sizes', 'colours', coloursSection),
-      section('labels', 'Labels, tags and packaging', 'labels', labelsSection),
-      section('notes', 'Extra notes', 'notes', notesSection),
+      section('order', 'Order details', orderSection),
+      section('designs', 'Design pictures', designSection),
+      section('logo', 'Logo', logoSection),
+      section('fabric', 'Fabric', fabricSection),
+      section('pattern', 'Pattern', patternSection),
+      section('printing', 'Printing', printingSection),
+      section('colours', 'Colours and sizes', coloursSection),
+      section('labels', 'Labels, tags and packaging', labelsSection),
+      section('notes', 'Extra notes', notesSection),
       h('div', { class: 'card next-steps' },
         h('p', { class: 'muted' }, 'All changes are saved automatically on this device.'),
         h('div', { class: 'btn-row' },

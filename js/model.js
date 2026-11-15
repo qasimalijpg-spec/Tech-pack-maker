@@ -15,13 +15,9 @@
     ['fabric', 'Fabric bought'], ['cutting', 'Cutting'], ['printing', 'Printing'],
     ['stitching', 'Stitching'], ['packing', 'Packing'], ['shipped', 'Shipped'],
   ];
-  const URDU_SECTIONS = [
-    ['order', 'Order details'], ['fabric', 'Fabric'], ['pattern', 'Pattern'], ['printing', 'Printing'],
-    ['colours', 'Colours and sizes'], ['labels', 'Labels and packaging'], ['notes', 'Extra notes'],
-  ];
   const DEFAULT_SIZES = ['14/16', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
 
-  const blankNote = () => ({ id: uid(), text: '', showClient: false, urdu: false });
+  const blankNote = () => ({ id: uid(), text: '', showClient: false });
 
   function newPack(settings) {
     const s = settings || TP.settings.current;
@@ -45,7 +41,6 @@
         packaging: { type: '', logoColor: '', bagSize: '', images: [] },
       },
       notes: [blankNote(), blankNote(), blankNote(), blankNote(), blankNote()],
-      urdu: { sections: {}, tr: {} },
       progress: {},
     };
   }
@@ -114,7 +109,6 @@
     for (const k of Object.keys(base)) if (p[k] === undefined) p[k] = base[k];
     p.order = Object.assign({}, base.order, p.order);
     p.labels = Object.assign({}, base.labels, p.labels);
-    p.urdu = Object.assign({ sections: {}, tr: {} }, p.urdu);
     p.progress = p.progress || {};
     return p;
   }
@@ -128,7 +122,7 @@
   function title(pack) { return pack.order.project || 'Untitled tech pack'; }
 
   TP.model = {
-    PRINT_METHODS, STAGES, URDU_SECTIONS, DEFAULT_SIZES,
+    PRINT_METHODS, STAGES, DEFAULT_SIZES,
     newPack, blankNote, totals, visibleSizes, totalMismatch, stagesDone, isFinished, deadline,
     duplicate, upgrade, methodLabel, title, num,
   };

@@ -4,17 +4,6 @@
    Change the colours in :root to restyle the whole app.
    ===================================================================== */
 
-@font-face {
-  font-family: 'Noto Nastaliq Urdu';
-  src: url('../fonts/noto-nastaliq-urdu-arabic-400-normal.woff2') format('woff2');
-  font-weight: 400; font-display: swap;
-}
-@font-face {
-  font-family: 'Noto Nastaliq Urdu';
-  src: url('../fonts/noto-nastaliq-urdu-arabic-700-normal.woff2') format('woff2');
-  font-weight: 700; font-display: swap;
-}
-
 :root {
   color-scheme: light;
   --bg: #f3f4f8;
@@ -36,7 +25,6 @@
   --radius: 14px;
   --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 2px 8px rgba(16, 24, 40, .05);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --urdu: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Urdu Typesetting', serif;
 }
 
 * { box-sizing: border-box; }
@@ -166,7 +154,6 @@ select.input { background-image: linear-gradient(45deg, transparent 50%, #667085
 textarea.input { min-height: 80px; resize: vertical; }
 .input:focus { outline: 2px solid var(--primary-2); outline-offset: -1px; border-color: transparent; }
 input[type=date].input { min-height: 48px; }
-.input.urdu { font-family: var(--urdu); font-size: 18px; line-height: 2.1; min-height: 56px; text-align: right; }
 .row-inline { display: flex; gap: 8px; align-items: center; }
 .row-inline > .input { flex: 1; }
 .unit-select { max-width: 120px; }
@@ -211,12 +198,6 @@ input[type=date].input { min-height: 48px; }
 .alert.info { background: var(--primary-soft); color: var(--primary); font-weight: 500; }
 .card .alert { margin-top: 12px; margin-bottom: 0; }
 
-/* Urdu bits in the form */
-.urdu-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-.urdu-panel { margin-top: 14px; border: 1px dashed #9fb0e0; background: #f7f9ff; border-radius: 12px; padding: 12px; }
-.urdu-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
-.urdu-row { display: grid; grid-template-columns: 1fr 1.3fr; gap: 10px; align-items: center; margin-top: 8px; }
-.urdu-en { font-size: 14px; color: #344054; word-break: break-word; }
 
 /* notes */
 .note-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -346,7 +327,6 @@ input[type=date].input { min-height: 48px; }
   .img-actions { grid-template-columns: 1fr; }
   .hide-sm { display: none; }
   .brand { font-size: 16px; }
-  .urdu-row { grid-template-columns: 1fr; gap: 4px; }
   .cost-total { margin: 0 -12px -12px; }
   .toolbar .btn.big { width: 100%; }
   .pack-actions .btn { padding: 0 6px; }
@@ -413,16 +393,6 @@ input[type=date].input { min-height: 48px; }
 .tp-stage .box { width: 18px; height: 18px; border: 2px solid #374151; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: #157347; }
 .tp-stage.done .box { border-color: #157347; }
 .tp-muted { color: #6b7280; }
-/* Urdu text inside the sheet: Urdu on top, your English small underneath */
-.tp-sheet .ur { font-family: var(--urdu); direction: rtl; unicode-bidi: isolate; display: block; font-size: 15px; line-height: 2.2; text-align: right; }
-.tp-sheet .bi .en, .tp-sheet .bi-label .en { display: block; font-size: 10.5px; color: #6b7280; font-weight: 500; line-height: 1.3; }
-.tp-sheet .bi-label .ur { font-size: 14px; line-height: 2; font-weight: 700; }
-.tp-h .bi-label { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; flex-direction: row-reverse; }
-.tp-h .bi-label .ur { font-size: 17px; text-transform: none; letter-spacing: 0; color: #1f3a8a; }
-.tp-h .bi-label .en { font-size: 14px; color: #1f3a8a; font-weight: 800; letter-spacing: .06em; }
-.tp-table thead .bi-label .ur, .tp-table thead .bi-label .en { color: #fff; text-align: left; }
-.tp-table thead .bi-label .ur { text-align: right; }
-.tp-notes .bi .ur { text-align: right; font-size: 16px; }
 
 /* Client sheet details */
 .tp-client-head { text-align: center; border-bottom: 3px solid #0f766e; padding-bottom: 14px; }

@@ -1,6 +1,6 @@
 /* =====================================================================
    sheets.js — draws the finished tech pack pages:
-     factorySheet(pack)  full working copy (can show Urdu)
+     factorySheet(pack)  full working copy for you and your workers
      clientSheet(pack)   clean copy for clients (NO costs, fabric store
                          or pattern codes — those are simply never added)
    Plus the Factory and Client pages with their buttons.
@@ -27,19 +27,7 @@
 
   /* =================== FACTORY SHEET =================== */
   function factorySheet(pack) {
-    const U = TP.urdu;
-    const on = (sec) => U.isOn(pack, sec);
-    // A label in English, or Urdu + English when that section is in Urdu
-    const lb = (sec, en) => on(sec) && U.hasLabel(en)
-      ? h('span', { class: 'bi-label' }, h('span', { class: 'ur' }, U.label(en)), h('span', { class: 'en' }, en))
-      : en;
-    // A value typed by you: Urdu on top and your English underneath, when that section is in Urdu
-    const tx = (useUrdu, en) => {
-      if (!has(en)) return '';
-      const ur = useUrdu ? pack.urdu.tr[String(en).trim()] : null;
-      return ur ? h('span', { class: 'bi' }, h('span', { class: 'ur' }, ur), h('span', { class: 'en' }, en)) : String(en);
-    };
-    const title = (sec, en) => h('h3', { class: 'tp-h' }, lb(sec, en));
+    const title = (en) => h('h3', { class: 'tp-h' }, en);
     const o = pack.order;
     const blocks = [];
     const block = (...kids) => { const b = h('div', { class: 'tp-block' }, ...kids); blocks.push(b); return b; };
@@ -49,57 +37,57 @@
       h('div', { class: 'tp-top' }, companyHeader(), h('div', { class: 'tp-doc' }, h('div', { class: 'tp-doc-title' }, 'TECH PACK'), h('div', { class: 'tp-sub' }, 'Factory copy · ' + util.fmtDate(util.todayISO())))),
       h('div', { class: 'tp-project' }, model.title(pack)),
       h('table', { class: 'tp-info' }, h('tbody', null,
-        h('tr', null, h('th', null, lb('order', 'Client / brand')), h('td', null, o.client), h('th', null, lb('order', 'Manufacturer')), h('td', null, o.manufacturer)),
-        h('tr', null, h('th', null, lb('order', 'Total order')), h('td', null, has(o.totalPieces) ? `${o.totalPieces} ` : '', has(o.totalPieces) ? lb('order', o.unit) : ''),
-          h('th', null, lb('order', 'Start date')), h('td', null, util.fmtDate(o.startDate))),
-        h('tr', null, h('th', null, lb('order', 'End date')), h('td', null, util.fmtDate(o.endDate)), h('th'), h('td')),
-        has(o.description) ? h('tr', null, h('th', null, lb('order', 'Order description')), h('td', { colspan: 3 }, tx(on('order'), o.description))) : null)));
+        h('tr', null, h('th', null, 'Client / brand'), h('td', null, o.client), h('th', null, 'Manufacturer'), h('td', null, o.manufacturer)),
+        h('tr', null, h('th', null, 'Total order'), h('td', null, has(o.totalPieces) ? `${o.totalPieces} ` : '', has(o.totalPieces) ? o.unit : ''),
+          h('th', null, 'Start date'), h('td', null, util.fmtDate(o.startDate))),
+        h('tr', null, h('th', null, 'End date'), h('td', null, util.fmtDate(o.endDate)), h('th'), h('td')),
+        has(o.description) ? h('tr', null, h('th', null, 'Order description'), h('td', { colspan: 3 }, o.description)) : null)));
 
     // 2. Design pictures (one block per design so PDF pages break nicely)
     pack.designs.filter((d) => d.front || d.back).forEach((d, i) => block(
-      i === 0 ? title('designs', 'Design pictures') : null,
+      i === 0 ? title('Design pictures') : null,
       h('div', { class: 'tp-design-name' }, d.name),
       h('div', { class: 'tp-pair' },
         d.front ? h('figure', null, picture(d.front, 380), h('figcaption', null, 'Front')) : null,
         d.back ? h('figure', null, picture(d.back, 380), h('figcaption', null, 'Back')) : null)));
 
     // 3. Logo
-    if (pack.logos.length) block(title('logo', 'Logo'), h('div', { class: 'tp-logos' }, pack.logos.map((l) => picture(l, 140))));
+    if (pack.logos.length) block(title('Logo'), h('div', { class: 'tp-logos' }, pack.logos.map((l) => picture(l, 140))));
 
     // 4. Fabric
-    if (anyRow(pack.fabrics, ['part', 'type', 'gsm', 'store'])) block(title('fabric', 'Fabric'),
+    if (anyRow(pack.fabrics, ['part', 'type', 'gsm', 'store'])) block(title('Fabric'),
       h('table', { class: 'tp-table' },
-        h('thead', null, h('tr', null, h('th', null, lb('fabric', 'Part')), h('th', null, lb('fabric', 'Fabric type')), h('th', null, lb('fabric', 'GSM')), h('th', null, lb('fabric', 'Fabric store')))),
-        h('tbody', null, pack.fabrics.map((f) => h('tr', null, h('td', null, tx(on('fabric'), f.part)), h('td', null, tx(on('fabric'), f.type)), h('td', null, f.gsm), h('td', null, f.store))))));
+        h('thead', null, h('tr', null, h('th', null, 'Part'), h('th', null, 'Fabric type'), h('th', null, 'GSM'), h('th', null, 'Fabric store'))),
+        h('tbody', null, pack.fabrics.map((f) => h('tr', null, h('td', null, f.part), h('td', null, f.type), h('td', null, f.gsm), h('td', null, f.store))))));
 
     // 5. Pattern
-    if (anyRow(pack.patterns, ['part', 'name', 'code'])) block(title('pattern', 'Pattern'),
+    if (anyRow(pack.patterns, ['part', 'name', 'code'])) block(title('Pattern'),
       h('table', { class: 'tp-table' },
-        h('thead', null, h('tr', null, h('th', null, lb('pattern', 'Part')), h('th', null, lb('pattern', 'Pattern name')), h('th', null, lb('pattern', 'Pattern code')))),
-        h('tbody', null, pack.patterns.map((p) => h('tr', null, h('td', null, tx(on('pattern'), p.part)), h('td', null, tx(on('pattern'), p.name)), h('td', null, p.code))))));
+        h('thead', null, h('tr', null, h('th', null, 'Part'), h('th', null, 'Pattern name'), h('th', null, 'Pattern code'))),
+        h('tbody', null, pack.patterns.map((p) => h('tr', null, h('td', null, p.part), h('td', null, p.name), h('td', null, p.code))))));
 
     // 6. Printing
-    if (pack.printing.length) block(title('printing', 'Printing'),
+    if (pack.printing.length) block(title('Printing'),
       h('table', { class: 'tp-table' },
-        h('thead', null, h('tr', null, h('th', null, lb('printing', 'Part')), h('th', null, lb('printing', 'Print type')))),
-        h('tbody', null, pack.printing.map((p) => h('tr', null, h('td', null, tx(on('printing'), p.part)), h('td', null, tx(on('printing'), model.methodLabel(p))))))));
+        h('thead', null, h('tr', null, h('th', null, 'Part'), h('th', null, 'Print type'))),
+        h('tbody', null, pack.printing.map((p) => h('tr', null, h('td', null, p.part), h('td', null, model.methodLabel(p)))))));
 
     // 7. Colours and sizes
-    block(title('colours', 'Colours and sizes'), sizesTable(pack, (en) => lb('colours', en), (en) => tx(on('colours'), en)));
+    block(title('Colours and sizes'), sizesTable(pack, (en) => en, (en) => en));
 
     // 8. Labels and packaging
     const L = pack.labels;
-    const labelBox = (head, rows, imgs) => h('div', { class: 'tp-label-box' }, h('h4', null, lb('labels', head)),
-      rows.filter(([, v]) => has(v)).map(([k, v, translate]) => h('div', { class: 'tp-kv' }, h('span', { class: 'k' }, lb('labels', k)), h('span', { class: 'v' }, translate ? tx(on('labels'), v) : v))),
+    const labelBox = (head, rows, imgs) => h('div', { class: 'tp-label-box' }, h('h4', null, head),
+      rows.filter(([, v]) => has(v)).map(([k, v]) => h('div', { class: 'tp-kv' }, h('span', { class: 'k' }, k), h('span', { class: 'v' }, v))),
       h('div', { class: 'tp-label-imgs' }, imgs.map((i) => picture(i, 110))));
-    block(title('labels', 'Labels and packaging'), h('div', { class: 'tp-labels' },
-      labelBox('Woven label', [['Colour / design', L.woven.notes, true], ['Size', L.woven.size]], L.woven.images),
-      labelBox('Hangtag / card', [['Colour / design', L.hangtag.notes, true], ['Size', L.hangtag.size]], L.hangtag.images),
-      labelBox('Packaging', [['Packaging type', L.packaging.type, true], ['Logo colour', L.packaging.logoColor, true], ['Bag size', L.packaging.bagSize]], L.packaging.images)));
+    block(title('Labels and packaging'), h('div', { class: 'tp-labels' },
+      labelBox('Woven label', [['Colour / design', L.woven.notes], ['Size', L.woven.size]], L.woven.images),
+      labelBox('Hangtag / card', [['Colour / design', L.hangtag.notes], ['Size', L.hangtag.size]], L.hangtag.images),
+      labelBox('Packaging', [['Packaging type', L.packaging.type], ['Logo colour', L.packaging.logoColor], ['Bag size', L.packaging.bagSize]], L.packaging.images)));
 
     // 9. Extra notes
     const notes = pack.notes.filter((n) => has(n.text));
-    if (notes.length) block(title('notes', 'Extra notes'), h('ol', { class: 'tp-notes' }, notes.map((n) => h('li', null, tx(n.urdu, n.text)))));
+    if (notes.length) block(title('Extra notes'), h('ol', { class: 'tp-notes' }, notes.map((n) => h('li', null, n.text))));
 
     // 10. Progress
     block(h('h3', { class: 'tp-h' }, 'Progress'), h('div', { class: 'tp-progress' },
@@ -109,19 +97,18 @@
   }
 
   /* Colours & sizes table — only sizes with pieces are shown */
-  function sizesTable(pack, lb, tx) {
-    lb = lb || ((x) => x); tx = tx || ((x) => x);
+  function sizesTable(pack) {
     const sizes = model.visibleSizes(pack);
     const t = model.totals(pack);
     const colors = pack.colors.filter((c) => t.perColor[c.id] > 0 || has(c.name));
     if (!sizes.length) return h('p', { class: 'tp-muted' }, 'No quantities entered yet.');
     return h('table', { class: 'tp-table tp-sizes' },
-      h('thead', null, h('tr', null, h('th', { class: 'left' }, lb('Colour')), sizes.map((s) => h('th', null, s)), h('th', null, lb('Total')))),
+      h('thead', null, h('tr', null, h('th', { class: 'left' }, 'Colour'), sizes.map((s) => h('th', null, s)), h('th', null, 'Total'))),
       h('tbody', null, colors.map((c) => h('tr', null,
-        h('td', { class: 'left' }, h('span', { class: 'tp-swatch', style: { background: c.hex } }), tx(c.name)),
+        h('td', { class: 'left' }, h('span', { class: 'tp-swatch', style: { background: c.hex } }), c.name),
         sizes.map((s) => h('td', null, util.int(c.qty[s]) || '–')),
         h('td', { class: 'strong' }, t.perColor[c.id])))),
-      h('tfoot', null, h('tr', null, h('td', { class: 'left' }, lb('Grand total')), sizes.map((s) => h('td', null, t.perSize[s])), h('td', { class: 'grand' }, t.grand))));
+      h('tfoot', null, h('tr', null, h('td', { class: 'left' }, 'Grand total'), sizes.map((s) => h('td', null, t.perSize[s])), h('td', { class: 'grand' }, t.grand))));
   }
 
   /* =================== CLIENT SHEET =================== */
@@ -185,26 +172,14 @@
   TP.pages.factory = function (root, pack) {
     const save = util.debounce(() => TP.packs.save(pack).then(TP.app.saved), 300);
     const holder = h('div');
-    const status = h('div', { class: 'muted small' });
 
     const draw = () => { holder.innerHTML = ''; TP.add(holder, preview(factorySheet(pack))); };
-    const translateMissing = async () => {
-      const miss = TP.urdu.missing(pack);
-      if (!miss.length) return;
-      status.textContent = 'Translating to Urdu…';
-      const failed = await TP.urdu.fillMissing(pack, miss);
-      status.textContent = failed ? `${failed} line(s) could not be translated (no internet?). Type them in Details → Urdu check.` : '';
-      save(); draw();
-    };
 
     const mm = model.totalMismatch(pack);
     TP.add(root, 
       h('div', { class: 'card toolbar' },
         ui.btn('⬇ Save as PDF', () => TP.export.factoryPDF(pack), 'primary big'),
-        ui.btn('All Urdu', async () => { TP.urdu.setAll(pack, true); save(); draw(); translateMissing(); }, 'secondary'),
-        ui.btn('All English', () => { TP.urdu.setAll(pack, false); save(); draw(); }, 'secondary'),
-        ui.btn('💰 Costing', () => TP.app.go(`#/pack/${pack.id}/costing`), 'secondary'),
-        status),
+        ui.btn('💰 Costing', () => TP.app.go(`#/pack/${pack.id}/costing`), 'secondary')),
       mm ? h('div', { class: 'alert danger' }, '⚠ Mistake check: ' + mm) : null,
       ui.card('Progress tracker', null,
         h('p', { class: 'muted small' }, 'Tick each stage when it is done.'),
@@ -216,7 +191,6 @@
           } }), h('span', null, l))))),
       holder);
     draw();
-    translateMissing();
     return () => save.flush();
   };
 

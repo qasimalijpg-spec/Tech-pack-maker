@@ -2,7 +2,7 @@
 
 A free app for making clothing tech packs. It works on a computer and on an iPhone, and replaces doing tech packs by hand in CorelDraw.
 
-- **Factory Version**: the full working copy for you and your workers. It saves as a PDF and can show Urdu.
+- **Factory Version**: the full working copy for you and your workers. It saves as a PDF.
 - **Client Version**: a clean copy for clients. It saves as a JPG picture for Instagram or WhatsApp.
 - **Costing page**: the costs for each order. Costs are never shown in any tech pack.
 - **Costing Sheet**: all your orders in one Excel file.
@@ -18,8 +18,8 @@ Everything is saved **on your device only**. Nothing is sent to a server.
 3. Open the new folder and double-click **index.html**. It opens in your web browser. Chrome or Edge work best.
 4. Press **Factory Version**, then **+ New tech pack**, and fill in a test order.
 
-> Two features need internet: **background removal** (its first use downloads a free helper of about 40–80 MB) and **Urdu translation**. Everything else works offline.
-> If there is no internet, the app uses a simpler background remover (best on white or plain backgrounds), and basic garment words are translated from a built-in word list.
+> One feature needs internet: **background removal** (its first use downloads a free helper of about 40–80 MB). Everything else works offline.
+> If there is no internet, the app uses a simpler background remover (best on white or plain backgrounds).
 
 ## 2. Put it online for free
 
@@ -68,7 +68,6 @@ Notes for the iPhone:
    - Pictures: **Add front picture** → **Remove background** (press **Undo background** if it goes wrong) → **Crop / size**.
    - Colours and sizes: add a row for each colour and type the pieces per size. Sizes with 0 pieces are hidden in the final tech pack. If the total doesn't match the order total, a red warning shows.
    - Extra notes: tick **Client** for notes the client should see.
-   - **Urdu**: switch on Urdu for any section, or press **All Urdu**. A box appears where you can check and correct the Urdu.
 3. **🏭 Factory** tab: tick off the progress stages, then press **Save as PDF**. When the PDF is saved, the app takes you straight to the **Costing** page.
 4. **💰 Costing** tab: type the costs (empty boxes count as zero) and press **Save to Costing Sheet**.
 5. **📸 Client** tab: press **Save as picture (JPG)**, then **Share**.
@@ -93,7 +92,6 @@ How some costs are worked out:
 | `js/model.js` | What a tech pack contains, totals, deadline warning, duplicating |
 | `js/settings.js` | Settings page and backup / restore |
 | `js/images.js` | Uploading pictures, background removal, crop / rotate / size |
-| `js/urdu.js` | Urdu words and translation |
 | `js/home.js` | Start screen |
 | `js/editor.js` | Details form |
 | `js/sheets.js` | Factory and Client tech pack layouts |
@@ -101,6 +99,6 @@ How some costs are worked out:
 | `js/costing.js` | Costing page, Costing Sheet and Excel |
 | `js/app.js` | Moving between screens |
 | `sw.js`, `manifest.webmanifest`, `icons/` | iPhone home screen icon and offline use |
-| `vendor/`, `fonts/` | Free helper libraries (PDF, picture, Excel) and the Urdu font |
+| `vendor/` | Free helper libraries (PDF, picture, Excel) |
 
-Free tools used: html2canvas, jsPDF, SheetJS, IMG.LY background removal (loaded only when you press "Remove background"), Noto Nastaliq Urdu font.
+Free tools used: html2canvas, jsPDF, SheetJS, IMG.LY background removal (loaded only when you press "Remove background").
