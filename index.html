@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tech Pack Builder</title>
+  <meta name="description" content="Make factory and client tech packs for clothing orders.">
+  <meta name="theme-color" content="#1f3a8a">
+
+  <!-- iPhone "Add to Home Screen" settings -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Tech Packs">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/favicon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- The whole app is drawn inside this box by the JavaScript files below -->
+  <div id="app"></div>
+
+  <!-- Helper libraries (stored inside the app, so they work offline) -->
+  <script src="vendor/html2canvas.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="vendor/xlsx.full.min.js"></script>
+
+  <!-- App code. Each file does one job (see README.md for a map). Order matters. -->
+  <script src="js/core.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/images.js"></script>
+  <script src="js/urdu.js"></script>
+  <script src="js/home.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/sheets.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/costing.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
