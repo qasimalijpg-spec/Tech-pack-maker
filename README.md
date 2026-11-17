@@ -124,6 +124,5 @@ How some costs are worked out:
 | `js/app.js` | Moving between screens, top bar |
 | `sw.js`, `manifest.webmanifest`, `icons/` | iPhone home screen icon and offline use |
 | `vendor/`, `fonts/` | Free helper libraries (PDF, picture, Excel) and the Inter fonts |
-| `PREMIUM-UPGRADE.md`, `techpack-maker.html`, `Blaze Impex - Glory Hoodie Tech Pack.pdf` | The design brief and reference files (not used by the app) |
 
 Free tools used: html2canvas, jsPDF, SheetJS, IMG.LY background removal (loaded from the internet only when a background is removed), Inter and Inter Tight fonts.
