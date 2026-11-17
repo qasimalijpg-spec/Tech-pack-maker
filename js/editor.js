@@ -78,20 +78,29 @@
           txt(o, 'project', 'Style name / project', 'e.g. Glory Hoodie', { onInput: () => { changed(); TP.app.setTitle(o.project); } }),
           txt(o, 'styleNo', 'Style no.', 'e.g. GH12')),
         h('div', { class: 'row' }, txt(o, 'client', 'Client / brand', 'e.g. Revamp Era'), txt(o, 'designer', 'Designer', 'e.g. Revamp Era')),
-        h('div', { class: 'row' }, txt(o, 'manufacturer', 'Manufacturer'),
-          ui.field('Stage', ui.text(o, 'stage', changed, { list: 'dl-stages', placeholder: '1st Sample' }))),
+        h('div', { class: 'row' }, txt(o, 'manufacturer', 'Manufacturer'), ui.field('Stage', stageInput())),
         ui.field('Main fabric', ui.text(o, 'mainFabric', changed, { list: 'dl-fabric-types', placeholder: 'e.g. 450 GSM Cotton Fleece' })),
         h('div', { class: 'row' },
           ui.field('Total order', h('div', { class: 'row-inline' },
             ui.number(o, 'totalPieces', () => { changed(); qtyRefresh(); }, { placeholder: 'e.g. 300', inputmode: 'numeric' }),
             ui.select(o, 'unit', [['pieces', 'pieces'], ['sets', 'sets']], changed, 'unit-select'))),
-          ui.field('Sample size', ui.select(o, 'sampleSize', pack.sizes.map((s) => [s, s]), changed))),
+          model.isSample(pack) ? ui.field('Sample size', ui.select(o, 'sampleSize', pack.sizes.map((s) => [s, s]), changed)) : h('div')),
         h('div', { class: 'row' },
           ui.field('Date (start)', ui.text(o, 'startDate', changed, { type: 'date' })),
           ui.field('End date', ui.text(o, 'endDate', () => { changed(); TP.app.refreshBanner(pack); }, { type: 'date' }))),
         txt(o, 'description', 'Order description', 'e.g. Full-zip hoodie, oversized. 300 pieces.', { multiline: true, rows: 2 }),
-        help('Size range and sizes are set in section 10 (Quantities). The sample size is highlighted on the tech pack.'),
+        help('Sizes are set in section 10 (Quantities). "Sample size" only shows when the stage is a sample (e.g. "1st Sample"), not for Bulk or Production.'),
       ];
+    }
+    /* Stage box: when it changes between a sample stage and Bulk/Production, show or hide "Sample size" */
+    function stageInput() {
+      const o = pack.order;
+      const inp = ui.text(o, 'stage', changed, { list: 'dl-stages', placeholder: '1st Sample or Bulk' });
+      let was = model.isSample(pack);
+      inp.addEventListener('change', () => {
+        if (model.isSample(pack) !== was) { was = model.isSample(pack); sections.filter((x) => x.key === 'order' || x.key === 'meas').forEach((x) => x.redraw()); }
+      });
+      return inp;
     }
 
     /* ================= 02 Summary & revisions ================= */
@@ -245,7 +254,7 @@
         h('div', { class: 'row3' },
           ui.field('Unit', ui.select(m, 'unit', [['in', 'Inches'], ['cm', 'Centimetres']], changed)),
           txt(m, 'tol', 'Tolerance ±', 'e.g. ½'),
-          ui.field('Sample size', ui.select(pack.order, 'sampleSize', pack.sizes.map((s) => [s, s]), () => { changed(); sections.find((s) => s.key === 'order').redraw(); }))),
+          model.isSample(pack) ? ui.field('Sample size', ui.select(pack.order, 'sampleSize', pack.sizes.map((s) => [s, s]), () => { changed(); sections.find((s) => s.key === 'order').redraw(); })) : h('div')),
         h('div', { class: 'sub' }, 'How-to-measure drawing'),
         m.diagram ? null : ui.btn('Use the standard hoodie drawing', () => { m.diagram = TP.images.fromData(TP.ASSETS.measureHoodie); saveNow(); redraw(); }, 'secondary small'),
         TP.images.single(m, 'diagram', () => { saveNow(); redraw(); }, 'Add measuring drawing'),
@@ -257,14 +266,14 @@
         h('div', { class: 'sub' }, 'Measurements (' + (m.unit === 'cm' ? 'cm' : 'inches') + ', garment laid flat)'),
         h('div', { class: 'meas-grid' }, h('table', null,
           h('tr', null, h('th', null, 'Pt'), h('th', { class: 'l' }, 'Name'), h('th', { class: 'l' }, 'How to measure'),
-            pack.sizes.map((z) => h('th', { class: z === pack.order.sampleSize ? 'hl' : '' }, z)), h('th')),
+            pack.sizes.map((z) => h('th', { class: z === model.sampleSize(pack) ? 'hl' : '' }, z)), h('th')),
           m.rows.map((r, i) => {
             const tr = h('tr', { class: i === measSel ? 'sel' : '' },
               h('td', null, h('input', { class: 'input letter', value: r.l, onInput: (e) => { r.l = e.target.value.toUpperCase().slice(0, 2); changed(); } })),
               h('td', { class: 'nm' }, ui.text(r, 'name', changed, { placeholder: 'Point name' })),
               h('td', { class: 'nm' }, ui.text(r, 'how', changed, { placeholder: 'How to measure' })),
               pack.sizes.map((z) => {
-                const inp = h('input', { class: 'input mv' + (z === pack.order.sampleSize ? ' hl' : ''), inputmode: 'decimal', onInput: (e) => { r.vals[z] = e.target.value; changed(); } });
+                const inp = h('input', { class: 'input mv' + (z === model.sampleSize(pack) ? ' hl' : ''), inputmode: 'decimal', onInput: (e) => { r.vals[z] = e.target.value; changed(); } });
                 inp.value = r.vals[z] || '';
                 return h('td', null, inp);
               }),

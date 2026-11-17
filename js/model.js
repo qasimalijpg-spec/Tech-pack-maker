@@ -19,7 +19,7 @@
   const TRIM_TYPES = ['Zipper', 'Zipper puller', 'Eyelet / grommet', 'Aglet', 'Drawcord', 'Button', 'Snap', 'Rivet',
     'Cord stopper', 'Elastic', 'Velcro', 'Woven label', 'Hangtag', 'Size label', 'Care label', 'Patch', 'Other'];
   const SUMMARY_KEYS = ['Garment', 'Fit', 'Fabric', 'Finish', 'Closure', 'Decoration', 'Drawstrings', 'Quantity'];
-  const STAGE_OPTIONS = ['Proto', '1st Sample', '2nd Sample', 'Fit sample', 'Pre-production', 'Production'];
+  const STAGE_OPTIONS = ['Proto sample', '1st Sample', '2nd Sample', 'Fit sample', 'Pre-production sample', 'Bulk', 'Production'];
   const DEFAULT_SIZES = ['14/16', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
 
   const blankNote = () => ({ id: uid(), text: '', showClient: false });
@@ -96,10 +96,20 @@
   function sizesInUse(pack) {
     if (pack.sizes.length <= 8) return pack.sizes.slice();
     const t = totals(pack);
-    const used = pack.sizes.filter((s) => t.perSize[s] > 0 || s === pack.order.sampleSize ||
+    const used = pack.sizes.filter((s) => t.perSize[s] > 0 || (isSample(pack) && s === pack.order.sampleSize) ||
       pack.meas.rows.some((r) => String((r.vals || {})[s] || '').trim()));
     if (!used.length) return pack.sizes.slice();
     return pack.sizes.slice(pack.sizes.indexOf(used[0]), pack.sizes.indexOf(used[used.length - 1]) + 1);
+  }
+
+  /* Sample size only matters for sample stages ("1st Sample", "Fit sample"…), not for Bulk / Production */
+  function isSample(pack) { return /sample/i.test(pack.order.stage || ''); }
+  function sampleSize(pack) { return isSample(pack) ? (pack.order.sampleSize || '') : ''; }
+  /* "14/16 – 6XL": first and last size of the size range */
+  function sizeRangeText(pack) {
+    const z = pack.sizes;
+    if (!z.length) return '—';
+    return z.length === 1 ? z[0] : `${z[0]} – ${z[z.length - 1]}`;
   }
 
   /* Returns a warning text if the colour table total doesn't match the order total */
@@ -216,7 +226,7 @@
 
   TP.model = {
     PRINT_METHODS, STAGES, TRIM_TYPES, SUMMARY_KEYS, STAGE_OPTIONS, DEFAULT_SIZES,
-    newPack, blankNote, blankColourway, totals, visibleSizes, sizesInUse, totalMismatch, checks,
+    newPack, blankNote, blankColourway, totals, visibleSizes, sizesInUse, isSample, sampleSize, sizeRangeText, totalMismatch, checks,
     stagesDone, isFinished, deadline, duplicate, upgrade, methodLabel, title, num,
   };
 

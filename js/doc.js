@@ -45,7 +45,7 @@
   function frame(ctx, title, cols) {
     const { pack, s } = ctx, o = pack.order;
     const sub = [o.styleNo && 'Style ' + o.styleNo, o.client].filter(has).join(' · ');
-    const sizes = model.sizesInUse(pack);
+    const sample = model.sampleSize(pack);
     return H(`<section class="tp-page">
       <header class="tp-hd"><img class="logo" src="${logos(s).white}" alt=""><div class="sep"></div>
         <div class="doc"><span class="tp-k">Technical Package</span><span class="t">${title}</span></div>
@@ -53,12 +53,13 @@
       <div class="tp-strip">
         <div><div class="tp-lab">Client</div><div class="tp-val">${esc(o.client || '—')}</div></div>
         <div><div class="tp-lab">Designer</div><div class="tp-val">${esc(o.designer || '—')}</div></div>
-        <div><div class="tp-lab">Style No.</div><div class="tp-val">${esc(o.styleNo || '—')}</div></div>
+        <div class="n"><div class="tp-lab">Style No.</div><div class="tp-val">${esc(o.styleNo || '—')}</div></div>
         <div class="w"><div class="tp-lab">Style Name</div><div class="tp-val">${esc(o.project || '—')}</div></div>
         <div><div class="tp-lab">Date</div><div class="tp-val">${esc(fmt(o.startDate) || '—')}</div></div>
         <div><div class="tp-lab">Stage</div><div class="tp-val">${esc(o.stage || '—')}</div></div>
         <div class="w"><div class="tp-lab">Main Fabric</div><div class="tp-val">${esc(o.mainFabric || '—')}</div></div>
-        <div><div class="tp-lab">Size Range · Sample</div><div class="tp-sizes${sizes.length > 7 ? ' many' : ''}">${sizes.map((z) => `<span class="${z === o.sampleSize ? 'on' : ''}">${esc(z)}</span>`).join('')}</div></div>
+        <div><div class="tp-lab">Size Range</div><div class="tp-val">${esc(model.sizeRangeText(pack))}</div></div>
+        ${sample ? `<div class="sm"><div class="tp-lab">Sample Size</div><div class="tp-val big">${esc(sample)}</div></div>` : ''}
       </div>
       <main class="tp-bd">${cols.map((c) => `<div class="tp-col" style="${c.style}"></div>`).join('')}</main>
       <footer class="tp-ft"><img class="flogo" src="${logos(s).black}" alt=""><span class="dot"></span><span>${esc(s.handle || '@blaze_impex')}</span><span class="dot"></span>
@@ -221,14 +222,15 @@
     return { title: 'Production Progress', render: (_, cont, n) => `<div>${sec(n, 'Progress')}<div class="tp-prog">${model.STAGES.map(([k, l]) => `<span class="${p[k] ? 'on' : ''}"><i>${p[k] ? '✓' : ''}</i>${esc(l)}</span>`).join('')}</div></div>` };
   }
   function specBlock(ctx) {
-    const m = ctx.pack.meas, z = model.sizesInUse(ctx.pack), sm = ctx.pack.order.sampleSize;
+    const m = ctx.pack.meas, z = model.sizesInUse(ctx.pack), sm = model.sampleSize(ctx.pack); // no sample column for Bulk / Production
     const rows = m.rows.filter((r) => has(r.name) || Object.values(r.vals || {}).some(has));
     if (!rows.length) return null;
     const unit = m.unit === 'cm' ? 'cm' : 'in';
     return {
       title: 'Measurement Specification', items: rows,
       render: (items, cont, n, last) => `<div>${sec(n, 'Measurement Specification', cont)}
-        <table class="tp-spec"><tr><th></th><th class="l">Point of measure (${unit})</th>${z.map((x) => `<th class="${x === sm ? 'hl' : ''}">${esc(x)}${x === sm ? ' · Sample' : ''}</th>`).join('')}<th>Tol ±</th></tr>
+        <table class="tp-spec eq"><colgroup><col style="width:8mm"><col style="width:${z.length > 8 ? 44 : 58}mm">${z.map(() => '<col>').join('')}<col style="width:13mm"></colgroup>
+        <tr><th></th><th class="l">Point of measure (${unit})</th>${z.map((x) => `<th class="${x === sm ? 'hl' : ''}">${x === sm ? '<span class="stag">Sample</span>' : ''}${esc(x)}</th>`).join('')}<th>Tol ±</th></tr>
         ${items.map((r) => `<tr><td class="poi"><span>${esc(r.l)}</span></td><td class="nm">${esc(r.name)}${has(r.how) ? `<small>${esc(r.how)}</small>` : ''}</td>
           ${z.map((x) => { const v = (r.vals || {})[x]; return `<td class="${x === sm ? 'hl' : ''}${has(v) ? '' : ' na'}">${has(v) ? esc(v) : '—'}</td>`; }).join('')}<td class="tol">${esc(m.tol)}</td></tr>`).join('')}</table>
         ${last && has(m.note) ? `<div class="tp-note">${esc(m.note)}</div>` : ''}</div>`,
@@ -244,7 +246,7 @@
     const lab = [];
     const wovenImg = L.woven.images[0];
     if (wovenImg || has(L.woven.notes) || has(L.woven.size)) {
-      lab.push(`<div class="tp-tag">${wovenImg ? pic(wovenImg) : `<span class="w1">${esc(p.order.client || 'Brand')}</span><span class="sz">${esc(p.order.sampleSize || '')}</span>`}</div>`);
+      lab.push(`<div class="tp-tag">${wovenImg ? pic(wovenImg) : `<span class="w1">${esc(p.order.client || 'Brand')}</span><span class="sz">${esc(model.sampleSize(p))}</span>`}</div>`);
       lab.push(`<div class="tp-mini"><b>Woven label</b>${has(L.woven.notes) ? ', ' + esc(L.woven.notes) : ''}${has(L.woven.size) ? ` (${esc(L.woven.size)})` : ''}</div>`);
     }
     if (has(L.hangtag.notes) || has(L.hangtag.size) || L.hangtag.images.length) {
