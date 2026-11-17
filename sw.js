@@ -1,12 +1,14 @@
 /* sw.js — lets the app open without internet once it has been opened online.
    It always tries the internet first (so you get the newest version),
    and uses the saved copy when there is no internet. */
-const CACHE = 'techpack-v2';
+const CACHE = 'techpack-v3';
 const FILES = [
-  './', './index.html', './manifest.webmanifest', './css/styles.css',
-  './js/core.js', './js/db.js', './js/model.js', './js/settings.js', './js/images.js',
-  './js/home.js', './js/editor.js', './js/sheets.js', './js/export.js', './js/costing.js', './js/app.js',
+  './', './index.html', './manifest.webmanifest', './css/techpack.css', './css/styles.css',
+  './js/core.js', './js/db.js', './js/model.js', './js/settings.js', './js/images.js', './js/assets.js',
+  './js/sample.js', './js/sample-images.js', './js/doc.js', './js/export.js', './js/home.js', './js/editor.js',
+  './js/costing.js', './js/app.js',
   './vendor/html2canvas.min.js', './vendor/jspdf.umd.min.js', './vendor/xlsx.full.min.js',
+  './fonts/inter-latin-wght-normal.woff2', './fonts/inter-tight-latin-wght-normal.woff2',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon.png',
 ];
 

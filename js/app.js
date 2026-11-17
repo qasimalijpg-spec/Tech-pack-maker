@@ -2,10 +2,10 @@
    app.js — starts the app and switches between screens.
    Screen addresses (shown after # in the address bar):
      #/                     start screen
-     #/pack/ID/edit         Details (fill in the tech pack)
-     #/pack/ID/factory      Factory Version
-     #/pack/ID/client       Client Version
-     #/pack/ID/costing      Costing page
+     #/pack/ID/edit         tech pack: form + live preview (Factory)
+     #/pack/ID/factory      same, showing the Factory Version preview
+     #/pack/ID/client       same, showing the Client Version preview
+     #/pack/ID/costing      Costing page for that order
      #/sheet                Costing Sheet (Excel)
      #/settings             Settings
    ===================================================================== */
@@ -16,16 +16,19 @@
   let banner = null;
   const savedDot = h('span', { class: 'saved-dot' }, 'Saved ✓');
 
-  const PACK_TABS = [['edit', '✏️ Details'], ['factory', '🏭 Factory'], ['client', '📸 Client'], ['costing', '💰 Costing']];
-
-  function topbar(title, showHome) {
-    return h('header', { class: 'topbar' },
-      showHome ? h('a', { class: 'top-btn', href: '#/' }, '⌂ Home') : h('div', { class: 'brand' }, h('img', { src: 'icons/favicon.png', alt: '' }), 'Tech Pack Builder'),
-      h('div', { class: 'top-title' }, title || ''),
+  /* Black brand bar: logo, title, and buttons */
+  function bar(title, sub, pack) {
+    const s = TP.settings.current;
+    return h('header', { class: 'bar' },
+      h('a', { href: '#/', class: 'bar-logo', title: 'Start screen' }, h('img', { src: s.companyLogoWhite || TP.ASSETS.logoWhite, alt: s.companyName || 'Blaze Impex' })),
+      h('div', { class: 'ttl' }, h('span', null, sub || 'Tech Pack Maker'), h('b', { class: 'top-title' }, title || (s.companyName || 'Blaze Impex'))),
+      h('div', { class: 'sp' }),
       savedDot,
-      h('nav', { class: 'top-nav' },
-        h('a', { class: 'top-btn', href: '#/sheet', title: 'Costing Sheet' }, '📊', h('span', { class: 'hide-sm' }, ' Costing Sheet')),
-        h('a', { class: 'top-btn', href: '#/settings', title: 'Settings' }, '⚙️', h('span', { class: 'hide-sm' }, ' Settings'))));
+      h('nav', { class: 'bar-nav' },
+        title ? h('a', { class: 'bar-btn', href: '#/', title: 'Start screen' }, '⌂', h('span', { class: 'hide-sm' }, ' Home')) : null,
+        pack ? h('a', { class: 'bar-btn', href: `#/pack/${pack.id}/costing`, title: 'Costing for this order' }, '₨', h('span', { class: 'hide-sm' }, ' Costing')) : null,
+        h('a', { class: 'bar-btn', href: '#/sheet', title: 'Costing Sheet' }, '📊', h('span', { class: 'hide-sm' }, ' Costing Sheet')),
+        h('a', { class: 'bar-btn', href: '#/settings', title: 'Settings' }, '⚙', h('span', { class: 'hide-sm' }, ' Settings'))));
   }
 
   function refreshBanner(pack) {
@@ -43,32 +46,39 @@
     const page = h('main', { class: 'page' });
     banner = null;
     app.innerHTML = '';
+    document.querySelectorAll('.modal-wrap').forEach((m) => m.remove()); // close pop-ups when changing screen
+    document.body.classList.remove('no-scroll');
+    document.body.className = '';
+    delete document.body.dataset.tab;
     window.scrollTo(0, 0);
 
     try {
       if (parts[0] === 'pack' && parts[1]) {
         const pack = await TP.packs.get(parts[1]);
         if (!pack) { ui.toast('That tech pack was not found.', 'error'); go('#/'); return; }
-        const view = PACK_TABS.some(([k]) => k === parts[2]) ? parts[2] : 'edit';
+        const view = parts[2] || 'edit';
         banner = h('div', { class: 'hidden' });
-        TP.add(app, 
-          topbar(model.title(pack), true),
-          h('div', { class: 'pack-head' },
-            h('div', { class: 'pack-head-title' }, h('span', { class: 'ph-name' }, model.title(pack)), pack.order.client ? h('span', { class: 'muted' }, ' · ' + pack.order.client) : null),
-            h('nav', { class: 'tabs' }, PACK_TABS.map(([k, l]) => h('a', { class: 'tab' + (k === view ? ' active' : ''), href: `#/pack/${pack.id}/${k}` }, l)))),
-          page);
-        TP.add(page, banner);
-        refreshBanner(pack);
-        cleanup = TP.pages[view](page, pack) || null;
-        if (cleanup && cleanup.then) cleanup = await cleanup;
+        if (view === 'costing') {
+          TP.add(app, bar(model.title(pack), 'Costing · ' + (pack.order.client || 'order'), pack), page);
+          TP.add(page, banner);
+          refreshBanner(pack);
+          cleanup = (await TP.pages.costing(page, pack)) || null;
+        } else {
+          document.body.classList.add('pack-screen');
+          page.classList.add('wide');
+          TP.add(app, bar(model.title(pack), 'Tech Pack Maker' + (pack.order.client ? ' · ' + pack.order.client : ''), pack), page);
+          TP.add(page, banner);
+          refreshBanner(pack);
+          cleanup = TP.pages.pack(page, pack, { mode: view === 'client' ? 'client' : 'factory', tab: view === 'edit' ? 'edit' : 'preview' }) || null;
+        }
       } else if (parts[0] === 'settings') {
-        TP.add(app, topbar('Settings', true), page);
+        TP.add(app, bar('Settings'), page);
         await TP.pages.settings(page);
       } else if (parts[0] === 'sheet') {
-        TP.add(app, topbar('Costing Sheet', true), page);
+        TP.add(app, bar('Costing Sheet', 'All orders'), page);
         await TP.pages.sheet(page);
       } else {
-        TP.add(app, topbar('', false), page);
+        TP.add(app, bar('', 'Tech Pack Maker'), page);
         await TP.pages.home(page);
       }
     } catch (e) {
@@ -87,10 +97,9 @@
     saved._t = setTimeout(() => savedDot.classList.remove('show'), 1500);
   }
 
-  /* Update the names at the top while you type the project name */
+  /* Update the name at the top while you type the style name */
   function setTitle(t) {
-    const name = t || 'Untitled tech pack';
-    document.querySelectorAll('.top-title, .ph-name').forEach((el) => { el.textContent = name; });
+    document.querySelectorAll('.top-title').forEach((el) => { el.textContent = t || 'Untitled tech pack'; });
   }
 
   TP.app = { go, saved, refreshBanner, setTitle };

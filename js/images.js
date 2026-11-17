@@ -1,7 +1,7 @@
 /* =====================================================================
    images.js — everything about pictures:
    - adding pictures (made smaller so the app stays fast)
-   - removing the background (free, inside the app) + undo
+   - removing the background automatically after upload (free, inside the app) + undo
    - cropping, rotating and choosing the size on the tech pack
    - the picture boxes you see in the forms
 
@@ -314,32 +314,78 @@
     return out;
   }
 
+  /* A picture made from a built-in data address (logos, sample pictures) */
+  function fromData(src) {
+    return { id: util.uid(), original: src, noBg: null, useNoBg: false, crop: null, rotate: 0, scale: 100, src };
+  }
+
+  /* White copy of a logo, for the black header band */
+  async function whiteVersion(src) {
+    const im = await loadImg(src);
+    const c = canvas(im.naturalWidth, im.naturalHeight);
+    const ctx = c.getContext('2d');
+    ctx.drawImage(im, 0, 0);
+    const id = ctx.getImageData(0, 0, c.width, c.height);
+    const d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      // dark pixels become solid white, light pixels become see-through
+      const lum = (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11) / 255;
+      const a = (d[i + 3] / 255) * (1 - lum);
+      d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = Math.round(255 * Math.min(1, a * 1.4));
+    }
+    ctx.putImageData(id, 0, 0);
+    return c.toDataURL('image/png');
+  }
+
+  /* ---------- Automatic background removal after upload ---------- */
+  const busy = new Map(); // picture id -> message shown while working
+  const autoOn = () => TP.settings.current.autoBg !== false;
+  function announce(id) { document.dispatchEvent(new CustomEvent('tp-img', { detail: id })); }
+
+  async function autoRemove(img, onChange) {
+    busy.set(img.id, 'Removing background…'); announce(img.id);
+    try {
+      const method = await removeBg(img, (m) => { busy.set(img.id, m); announce(img.id); });
+      if (method === 'simple' && !autoRemove.warned) {
+        autoRemove.warned = true; // say it once, not for every picture
+        ui.toast('Background removed with the simple method (the AI helper needs internet). Not happy? Tap Undo.', 'warn');
+      }
+    } catch (e) {
+      ui.toast('Could not remove the background: ' + e.message, 'error');
+    }
+    busy.delete(img.id);
+    onChange && onChange();
+    announce(img.id);
+  }
+  function afterUpload(imgs, onChange) { if (autoOn()) imgs.forEach((im) => autoRemove(im, onChange)); }
+
   /* One picture with its buttons */
-  function tile(img, { onChange, onDelete, onReplace, caption }) {
-    const pic = h('img', { src: img.src, alt: caption || 'picture' });
-    const over = h('div', { class: 'img-over', hidden: true });
+  function tile(img, { onChange, onDelete, onReplace, caption, refresh }) {
     const wrap = h('div', { class: 'img-tile' });
-
-    const bgBtn = img.useNoBg
-      ? ui.btn('↶ Undo background', async () => { img.useNoBg = false; img.crop = null; img.rotate = 0; await rebuild(img); onChange(); }, 'small secondary')
-      : ui.btn('✨ Remove background', async () => {
-        over.hidden = false; over.textContent = 'Removing background…';
-        try {
-          const method = await removeBg(img, (m) => { over.textContent = m; });
-          if (method === 'simple') ui.toast('Used the simple method (AI helper needs internet). Works best on plain backgrounds. Not happy? Press Undo.', 'warn');
-          else ui.toast('Background removed ✓  Not happy? Press Undo.', 'ok');
-          onChange();
-        } catch (e) { ui.toast('Could not remove background: ' + e.message, 'error'); over.hidden = true; }
-      }, 'small secondary');
-
-    TP.add(wrap, 
-      caption ? h('div', { class: 'img-caption' }, caption) : null,
-      h('div', { class: 'img-box checker' }, pic, over),
-      h('div', { class: 'img-actions' },
-        bgBtn,
-        ui.btn('✂ Crop / size', async () => { if (await editor(img)) onChange(); }, 'small secondary'),
-        onReplace ? ui.btn('Replace', onReplace, 'small secondary') : null,
-        ui.btn('Delete', async () => { if (await ui.confirm('Delete this picture?', 'Delete', true)) onDelete(); }, 'small danger-outline')));
+    const draw = () => {
+      wrap.innerHTML = '';
+      const working = busy.get(img.id);
+      const chip = working ? null : img.useNoBg
+        ? h('div', { class: 'bg-chip' }, '✓ Background removed · ',
+          h('button', { type: 'button', onClick: async () => { img.useNoBg = false; img.crop = null; img.rotate = 0; await rebuild(img); onChange(); draw(); } }, 'Undo'))
+        : h('button', { type: 'button', class: 'bg-chip off', onClick: () => autoRemove(img, () => { onChange(); }) }, '✨ Remove background');
+      TP.add(wrap,
+        caption ? h('div', { class: 'img-caption' }, caption) : null,
+        h('div', { class: 'img-box checker' }, h('img', { src: img.src, alt: caption || 'picture' }),
+          working ? h('div', { class: 'img-over' }, h('span', { class: 'spinner sm' }), h('span', null, working)) : null),
+        chip,
+        h('div', { class: 'img-actions' },
+          ui.btn('✂ Crop / size', async () => { if (await editor(img)) { onChange(); draw(); } }, 'small secondary'),
+          onReplace ? ui.btn('Replace', onReplace, 'small secondary') : null,
+          ui.btn('Delete', async () => { if (await ui.confirm('Delete this picture?', 'Delete', true)) onDelete(); }, 'small danger-outline')));
+    };
+    // redraw when background removal for this picture moves on
+    const listener = (e) => {
+      if (!wrap.isConnected) { document.removeEventListener('tp-img', listener); return; }
+      if (e.detail === img.id) (refresh || draw)();
+    };
+    document.addEventListener('tp-img', listener);
+    draw();
     return wrap;
   }
 
@@ -350,7 +396,7 @@
       box.innerHTML = '';
       const add = async () => {
         const [img] = await addFiles((await pickFiles(false)).slice(0, 1));
-        if (img) { obj[key] = img; onChange(); draw(); }
+        if (img) { obj[key] = img; onChange(); draw(); afterUpload([img], onChange); }
       };
       if (!obj[key]) {
         TP.add(box, h('button', { type: 'button', class: 'img-add', onClick: add },
@@ -358,7 +404,7 @@
       } else {
         TP.add(box, tile(obj[key], {
           caption,
-          onChange: () => { onChange(); draw(); },
+          onChange,
           onDelete: () => { obj[key] = null; onChange(); draw(); },
           onReplace: add,
         }));
@@ -374,17 +420,17 @@
     const draw = () => {
       box.innerHTML = '';
       arr.forEach((img, i) => TP.add(box, tile(img, {
-        onChange: () => { onChange(); draw(); },
+        onChange,
         onDelete: () => { arr.splice(i, 1); onChange(); draw(); },
       })));
       TP.add(box, h('button', { type: 'button', class: 'img-add', onClick: async () => {
         const imgs = await addFiles(await pickFiles(true));
-        if (imgs.length) { arr.push(...imgs); onChange(); draw(); }
+        if (imgs.length) { arr.push(...imgs); onChange(); draw(); afterUpload(imgs, onChange); }
       } }, h('span', { class: 'plus' }, '+'), h('span', null, addLabel || 'Add pictures')));
     };
     draw();
     return box;
   }
 
-  TP.images = { fromFile, rebuild, removeBg, simpleRemove, editor, tile, single, gallery, loadImg };
+  TP.images = { fromFile, fromData, whiteVersion, rebuild, removeBg, simpleRemove, editor, tile, single, gallery, loadImg, isBusy: (id) => busy.has(id) };
 })(window.TP);

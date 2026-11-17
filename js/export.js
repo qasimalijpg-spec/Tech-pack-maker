@@ -1,39 +1,80 @@
 /* =====================================================================
-   export.js — turns the finished sheets into files:
-     factoryPDF(pack)  → A4 PDF, then opens the Costing page
-     clientJPG(pack)   → 1080-pixel-wide JPG for Instagram / WhatsApp
+   export.js — turns the tech pack pages into files:
+     printPDF(pack, mode)  → SHARP PDF: opens the browser's print window,
+                              choose "Save as PDF". Text stays real text.
+     pdfFile(pack, mode)   → PDF file made from pictures at 3× resolution
+                              (backup method that works everywhere).
+     clientJPGs(pack)      → one JPG picture per client page.
+   After the Factory PDF is saved, the app goes straight to Costing.
    ===================================================================== */
 'use strict';
 (function (TP) {
   const { h, ui, util, model } = TP;
   const MAX_CANVAS_AREA = 16000000; // iPhone limit for one picture
 
-  /* Put the sheet off-screen at full size, wait for pictures and fonts */
-  async function stage(sheet) {
-    const box = h('div', { class: 'export-stage' }, sheet);
-    document.body.appendChild(box);
-    const imgs = Array.from(sheet.querySelectorAll('img'));
-    await Promise.all(imgs.map((i) => (i.complete ? Promise.resolve() : new Promise((r) => { i.onload = i.onerror = r; }))));
+  const baseName = (pack) => util.safeName([model.title(pack), pack.order.styleNo].filter(Boolean).join(' '));
+  const goCosting = (pack) => { ui.toast('Now fill in the costs for this order.', 'ok'); TP.app.go(`#/pack/${pack.id}/costing`); };
+
+  async function waitImages(pages) {
+    const imgs = pages.flatMap((p) => Array.from(p.querySelectorAll('img')));
+    await Promise.all(imgs.map((i) => (i.complete && i.naturalWidth ? null : (i.decode ? i.decode().catch(() => {}) : null))));
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    await new Promise((r) => setTimeout(r, 60));
-    return box;
   }
 
-  function snap(el, scale) {
-    const area = el.offsetWidth * el.offsetHeight;
+  /* ---------------- Sharp PDF through the browser ---------------- */
+  async function printPDF(pack, mode) {
+    const busy = ui.busy('Preparing the pages…');
+    let r;
+    try {
+      r = await TP.doc.render(pack, mode);
+      let root = document.getElementById('print-root');
+      if (!root) { root = h('div', { id: 'print-root' }); document.body.appendChild(root); }
+      root.innerHTML = '';
+      r.pages.forEach((p) => root.appendChild(p));
+      await waitImages(r.pages);
+      const oldTitle = document.title;
+      document.title = `${baseName(pack)} - ${mode === 'client' ? 'Client' : 'Factory'} Tech Pack`; // becomes the PDF file name
+      busy.close();
+      let after = false;
+      const done = () => {
+        if (after) return; after = true;
+        document.title = oldTitle;
+        root.innerHTML = '';
+        if (mode === 'factory') goCosting(pack);
+      };
+      window.addEventListener('afterprint', done, { once: true });
+      ui.toast('In the print window choose "Save as PDF" (on iPhone: Share → Save to Files).', 'ok');
+      await new Promise((res) => setTimeout(res, 300));
+      window.print(); // "afterprint" runs done() when the print window closes
+    } catch (e) {
+      console.error(e);
+      ui.toast('Could not prepare the PDF: ' + e.message, 'error');
+    } finally {
+      busy.close();
+      if (r) r.done();
+    }
+  }
+
+  /* Picture of one page */
+  function snap(page, scale) {
+    const area = page.offsetWidth * page.offsetHeight;
     const s = Math.min(scale, Math.sqrt(MAX_CANVAS_AREA / Math.max(1, area)));
-    return window.html2canvas(el, { scale: s, backgroundColor: '#ffffff', useCORS: true, logging: false });
+    return window.html2canvas(page, { scale: s, backgroundColor: '#ffffff', useCORS: true, logging: false });
   }
-
-  const blobOf = (canvas, type, q) => new Promise((r) => canvas.toBlob(r, type, q));
+  const blobOf = (canvas, type, q) => new Promise((res) => canvas.toBlob(res, type, q));
 
   /* Pop-up with Save / Share buttons. afterSave runs once a button is pressed. */
-  function readyDialog({ title, blob, filename, afterSave, preview }) {
-    const canShare = util.isPhone() && util.canShareFiles(blob, filename);
+  function readyDialog({ title, blob, files, filename, afterSave, preview }) {
+    const list = files || [{ blob, filename }];
+    const canShare = util.isPhone() && list.every((f) => util.canShareFiles(f.blob, f.filename));
     const act = async (how) => {
       try {
-        if (how === 'share') { await util.share(blob, filename, title); }
-        else util.download(blob, filename);
+        if (how === 'share') {
+          const fs = list.map((f) => new File([f.blob], f.filename, { type: f.blob.type }));
+          try { await navigator.share({ files: fs, title }); } catch (e) { if (e && e.name !== 'AbortError') throw e; }
+        } else {
+          for (const f of list) { util.download(f.blob, f.filename); await new Promise((r) => setTimeout(r, 400)); }
+        }
       } catch (e) { ui.toast('Could not share: ' + e.message, 'error'); return false; }
       if (afterSave) setTimeout(afterSave, 600);
     };
@@ -41,94 +82,69 @@
       title,
       body: h('div', null,
         preview ? h('div', { class: 'ready-preview checker' }, h('img', { src: preview, alt: '' })) : null,
-        h('p', { class: 'lead' }, 'Your file is ready: ', h('strong', null, filename)),
-        canShare ? h('p', { class: 'muted small' }, 'Press "Share" to send it on WhatsApp / Instagram or "Save to Files".') : null),
+        h('p', { class: 'lead' }, list.length > 1 ? `${list.length} files are ready:` : 'Your file is ready: ',
+          list.length > 1 ? null : h('strong', null, list[0].filename)),
+        list.length > 1 ? h('ul', { class: 'file-list' }, list.map((f) => h('li', null, f.filename))) : null,
+        canShare ? h('p', { class: 'muted small' }, 'Press "Share" to send on WhatsApp / Instagram, or "Save to Files".') : null),
       actions: [
         canShare ? { label: '📤 Share', cls: 'primary', onClick: () => act('share') } : null,
-        { label: '⬇ Save file', cls: canShare ? 'secondary' : 'primary', onClick: () => act('save') },
+        { label: list.length > 1 ? '⬇ Save files' : '⬇ Save file', cls: canShare ? 'secondary' : 'primary', onClick: () => act('save') },
       ].filter(Boolean),
     });
   }
 
-  /* ---------------- Factory PDF ---------------- */
-  async function factoryPDF(pack) {
+  /* ---------------- PDF made from pictures (3×) ---------------- */
+  async function pdfFile(pack, mode) {
     const busy = ui.busy('Making PDF…');
-    let box;
+    let r;
     try {
-      const sheet = TP.sheets.factorySheet(pack);
-      box = await stage(sheet);
+      r = await TP.doc.render(pack, mode);
+      await waitImages(r.pages);
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
-      const PW = 210, PH = 297, M = 10, CW = PW - 2 * M, BOTTOM = PH - 12;
-      let y = M;
-      const blocks = Array.from(sheet.querySelectorAll('.tp-block'));
-      for (let i = 0; i < blocks.length; i++) {
-        busy.update(`Making PDF… ${Math.round(((i + 1) / blocks.length) * 100)}%`);
-        const c = await snap(blocks[i], 2);
-        const mmPerPx = CW / c.width;
-        const hmm = c.height * mmPerPx;
-        if (hmm <= BOTTOM - M) {
-          if (y + hmm > BOTTOM) { doc.addPage(); y = M; }
-          doc.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', M, y, CW, hmm);
-          y += hmm + 2;
-        } else {
-          // very tall block: cut it into page-sized slices
-          if (y > M) { doc.addPage(); y = M; }
-          const slicePx = Math.floor((BOTTOM - M) / mmPerPx);
-          for (let top = 0; top < c.height; top += slicePx) {
-            const hpx = Math.min(slicePx, c.height - top);
-            const part = document.createElement('canvas');
-            part.width = c.width; part.height = hpx;
-            part.getContext('2d').drawImage(c, 0, top, c.width, hpx, 0, 0, c.width, hpx);
-            if (top > 0) { doc.addPage(); y = M; }
-            doc.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', M, y, CW, hpx * mmPerPx);
-            y += hpx * mmPerPx + 2;
-          }
-        }
-      }
-      // page numbers
-      const n = doc.getNumberOfPages();
-      for (let p = 1; p <= n; p++) {
-        doc.setPage(p);
-        doc.setFontSize(8); doc.setTextColor(140);
-        doc.text(`${model.title(pack)} · Factory tech pack · Page ${p} of ${n}`, PW / 2, PH - 6, { align: 'center' });
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+      for (let i = 0; i < r.pages.length; i++) {
+        busy.update(`Making PDF… page ${i + 1} of ${r.pages.length}`);
+        const c = await snap(r.pages[i], 3);
+        if (i) doc.addPage('a4', 'landscape');
+        doc.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
       }
       const blob = doc.output('blob');
-      const filename = `${util.safeName(model.title(pack))} - Factory Tech Pack.pdf`;
-      busy.close(); box.remove(); box = null;
-      readyDialog({
-        title: 'PDF ready', blob, filename,
-        afterSave: () => { ui.toast('Now fill in the costs for this order.', 'ok'); TP.app.go(`#/pack/${pack.id}/costing`); },
-      });
+      const filename = `${baseName(pack)} - ${mode === 'client' ? 'Client' : 'Factory'} Tech Pack.pdf`;
+      busy.close();
+      readyDialog({ title: 'PDF ready', blob, filename, afterSave: mode === 'factory' ? () => goCosting(pack) : null });
     } catch (e) {
       console.error(e);
       ui.toast('Could not make the PDF: ' + e.message, 'error');
     } finally {
       busy.close();
-      if (box) box.remove();
+      if (r) r.done();
     }
   }
 
-  /* ---------------- Client JPG ---------------- */
-  async function clientJPG(pack) {
-    const busy = ui.busy('Making picture…');
-    let box;
+  /* ---------------- Client JPGs: one picture per page ---------------- */
+  async function clientJPGs(pack) {
+    const busy = ui.busy('Making pictures…');
+    let r;
     try {
-      const sheet = TP.sheets.clientSheet(pack);
-      box = await stage(sheet);
-      const c = await snap(sheet, 1080 / sheet.offsetWidth); // 1080 pixels wide
-      const blob = await blobOf(c, 'image/jpeg', 0.92);
-      const filename = `${util.safeName(model.title(pack))} - Tech Pack.jpg`;
-      busy.close(); box.remove(); box = null;
-      readyDialog({ title: 'Picture ready', blob, filename, preview: URL.createObjectURL(blob) });
+      r = await TP.doc.render(pack, 'client');
+      await waitImages(r.pages);
+      const files = [];
+      for (let i = 0; i < r.pages.length; i++) {
+        busy.update(`Making picture ${i + 1} of ${r.pages.length}…`);
+        const c = await snap(r.pages[i], 2.2); // about 2450 pixels wide
+        const blob = await blobOf(c, 'image/jpeg', 0.92);
+        files.push({ blob, filename: `${baseName(pack)} - Client Tech Pack ${i + 1} of ${r.pages.length}.jpg` });
+      }
+      busy.close();
+      readyDialog({ title: 'Pictures ready', files, preview: URL.createObjectURL(files[0].blob) });
     } catch (e) {
       console.error(e);
-      ui.toast('Could not make the picture: ' + e.message, 'error');
+      ui.toast('Could not make the pictures: ' + e.message, 'error');
     } finally {
       busy.close();
-      if (box) box.remove();
+      if (r) r.done();
     }
   }
 
-  TP.export = { factoryPDF, clientJPG, readyDialog };
+  TP.export = { printPDF, pdfFile, clientJPGs, readyDialog };
 })(window.TP);

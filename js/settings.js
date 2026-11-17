@@ -9,7 +9,10 @@
   const DEFAULTS = {
     key: 'main',
     companyName: 'Blaze Impex',
-    companyLogo: null,
+    companyLogo: null,       // leave empty to use the built-in Blaze Impex logo
+    companyLogoWhite: null,  // made automatically from companyLogo, for the black header
+    handle: '@blaze_impex',  // shown in the tech pack footer
+    autoBg: true,            // remove the background automatically after every upload
     manufacturer: 'Blaze Impex',
     sizes: ['14/16', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'],
     fabricTypes: ['Jersey 65/35', 'Jersey 100% cotton', 'Parachute', 'Fleece', 'French terry', 'Polyester interlock', 'Dri-fit mesh', 'Rib'],
@@ -30,7 +33,14 @@
       } catch (e) { console.error(e); }
       return TP.settings.current;
     },
-    async save() { await TP.db.put('settings', TP.settings.current); },
+    async save() {
+      const c = TP.settings.current;
+      // keep the white header version of the logo in step with the logo
+      const src = c.companyLogo && c.companyLogo.src;
+      if (src && c._whiteFor !== src) { c.companyLogoWhite = await TP.images.whiteVersion(src); c._whiteFor = src; }
+      if (!src) { c.companyLogoWhite = null; c._whiteFor = null; }
+      await TP.db.put('settings', c);
+    },
   };
 
   /* A list of small "chips" with an × to remove and a box to add more */
@@ -96,10 +106,18 @@
 
     TP.add(root, 
       ui.card('My company', null,
-        ui.field('Company name (shown on tech packs)', ui.text(s, 'companyName', save)),
+        ui.field('Company name', ui.text(s, 'companyName', save)),
+        ui.field('Website or Instagram (tech pack footer)', ui.text(s, 'handle', save, { placeholder: '@blaze_impex' })),
         h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Company logo'),
-          TP.images.single(s, 'companyLogo', save, 'Add company logo')),
+          h('p', { class: 'help' }, 'Leave empty to use the Blaze Impex logo. A dark logo on a see-through background works best: the app makes a white copy for the black header.'),
+          h('div', { class: 'logo-preview' },
+            h('span', { class: 'on-black' }, h('img', { src: s.companyLogoWhite || TP.ASSETS.logoWhite, alt: '' })),
+            h('span', { class: 'on-white' }, h('img', { src: (s.companyLogo && s.companyLogo.src) || TP.ASSETS.logoBlack, alt: '' }))),
+          TP.images.single(s, 'companyLogo', async () => { await TP.settings.save(); TP.app.saved(); }, 'Add your own logo')),
       ),
+      ui.card('Pictures', null,
+        ui.toggle(s.autoBg !== false, (on) => { s.autoBg = on; save(); }, 'Remove the background automatically after every upload'),
+        h('p', { class: 'help' }, 'You can always tap "Undo" on a picture to get the original back.')),
       ui.card('Defaults for new tech packs', null,
         ui.field('Default manufacturer name', ui.text(s, 'manufacturer', save)),
         h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Default size list (in order)'),

@@ -12,9 +12,9 @@
   }
 
   function thumb(p) {
-    const d = p.designs.find((x) => x.front || x.back);
-    const src = d ? (d.front || d.back).src : null;
-    return h('div', { class: 'thumb checker' }, src ? h('img', { src, alt: '' }) : h('span', { class: 'thumb-empty' }, '👕'));
+    const c = (p.colourways || []).find((x) => x.front || x.back);
+    const src = c ? (c.front || c.back).src : null;
+    return h('div', { class: 'thumb' }, src ? h('img', { src, alt: '' }) : h('span', { class: 'thumb-empty' }, 'No picture'));
   }
 
   /* Pop-up list to choose a tech pack for Factory or Client version */
@@ -41,7 +41,7 @@
       const shown = list.filter((p) => !q || (p.order.project + ' ' + p.order.client).toLowerCase().includes(q));
       listBox.innerHTML = '';
       if (!list.length) {
-        TP.add(listBox, h('div', { class: 'empty' }, h('div', { class: 'empty-icon' }, '📋'),
+        TP.add(listBox, h('div', { class: 'empty' }, 
           h('p', null, 'No tech packs yet.'), h('p', { class: 'muted' }, 'Press "Factory Version" above to make your first one.')));
         return;
       }
@@ -85,19 +85,32 @@
     TP.add(root, 
       h('div', { class: 'hero' },
         h('button', { type: 'button', class: 'big-choice factory', onClick: () => chooser(list, 'factory') },
-          h('span', { class: 'big-icon' }, '🏭'),
+          h('span', { class: 'big-no' }, '01'),
           h('span', { class: 'big-title' }, 'Factory Version'),
-          h('span', { class: 'big-sub' }, 'New tech pack or full working copy')),
+          h('span', { class: 'big-sub' }, 'New tech pack, or the full working copy · PDF + costing')),
         h('button', { type: 'button', class: 'big-choice client', onClick: () => chooser(list, 'client') },
-          h('span', { class: 'big-icon' }, '📸'),
+          h('span', { class: 'big-no' }, '02'),
           h('span', { class: 'big-title' }, 'Client Version'),
-          h('span', { class: 'big-sub' }, 'Clean picture to send to clients'))),
+          h('span', { class: 'big-sub' }, 'Clean copy for clients · JPG pictures or PDF'))),
       lateCount ? h('div', { class: 'alert warn' }, `⏰ ${lateCount} order${lateCount > 1 ? 's are' : ' is'} close to or past the end date. See below.`) : null,
       h('div', { class: 'list-head' }, h('h2', null, 'My tech packs'), h('span', { class: 'muted' }, `${list.length} saved`)),
       list.length > 3 ? search : null,
-      listBox);
+      listBox,
+      h('div', { class: 'sample-row' },
+        h('span', { class: 'muted small' }, 'Want to see a finished tech pack?'),
+        ui.btn('Load the Glory Hoodie example', loadSample, 'secondary small')));
     drawList();
   };
 
-  TP.home = { newPack };
+  async function loadSample() {
+    const busy = ui.busy('Loading the example…');
+    try {
+      const p = await TP.sample.build();
+      await TP.packs.save(p);
+      busy.close();
+      TP.app.go(`#/pack/${p.id}/factory`);
+    } catch (e) { busy.close(); ui.toast(e.message, 'error'); }
+  }
+
+  TP.home = { newPack, loadSample };
 })(window.TP);

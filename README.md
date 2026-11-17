@@ -2,8 +2,8 @@
 
 A free app for making clothing tech packs. It works on a computer and on an iPhone, and replaces doing tech packs by hand in CorelDraw.
 
-- **Factory Version**: the full working copy for you and your workers. It saves as a PDF.
-- **Client Version**: a clean copy for clients. It saves as a JPG picture for Instagram or WhatsApp.
+- **Factory Version**: the full working copy for you and your workers (4-page A4 landscape PDF).
+- **Client Version**: a clean copy for clients (3 pages), saved as JPG pictures for Instagram or WhatsApp, or as a PDF.
 - **Costing page**: the costs for each order. Costs are never shown in any tech pack.
 - **Costing Sheet**: all your orders in one Excel file.
 
@@ -63,21 +63,42 @@ Notes for the iPhone:
 
 ## How to use it (quick guide)
 
+**Try the example first:** on the start screen press **Load the Glory Hoodie example** to see a finished tech pack.
+
 1. **Start screen** → **Factory Version** → **+ New tech pack**.
-2. Fill in **Details**. Everything saves by itself (you'll see "Saved ✓" at the top).
-   - Pictures: **Add front picture** → **Remove background** (press **Undo background** if it goes wrong) → **Crop / size**.
-   - Colours and sizes: add a row for each colour and type the pieces per size. Sizes with 0 pieces are hidden in the final tech pack. If the total doesn't match the order total, a red warning shows.
-   - Extra notes: tick **Client** for notes the client should see.
-3. **🏭 Factory** tab: tick off the progress stages, then press **Save as PDF**. When the PDF is saved, the app takes you straight to the **Costing** page.
-4. **💰 Costing** tab: type the costs (empty boxes count as zero) and press **Save to Costing Sheet**.
-5. **📸 Client** tab: press **Save as picture (JPG)**, then **Share**.
-6. **📊 Costing Sheet** (at the top): see all orders and **Download Excel file**.
-7. On the start screen, **Duplicate** copies an old tech pack so you can start a new order quickly.
+2. The tech pack screen has the **form on the left** and a **live preview of the pages on the right** (on a phone: **Edit** and **Preview** tabs). Everything saves by itself ("Saved ✓" at the top).
+3. Fill in the numbered sections. Tap a section to open or close it:
+   - **01 Order details**: style name, style no., client, designer, stage, main fabric, total order, sample size, dates, description.
+   - **02 Summary & revisions**: short facts (garment, fit, fabric…) and the revisions table.
+   - **03 Colourways**: front, back and side picture per colour. **The background is removed automatically** after each upload. Tap **Undo** on the green chip if it goes wrong. **Crop / size** is still there.
+   - **04 Points of interest**: tap a callout to select it, then tap the drawing where it goes. A red numbered pin appears on the tech pack.
+   - **05 Artwork & printing**: artwork cards (picture, name, technique, ink colour, size, placement), client logos, printing table.
+   - **06 Fabric & pattern**: fabric (with GSM and fabric store), pattern name and code, bill of materials.
+   - **07 Trims & hardware**: zippers, eyelets, aglets, drawcords, labels… with a photo. They are added to the bill of materials automatically.
+   - **08 Measurements**: inches or cm, tolerance, the how-to-measure drawing (or tap **Use the standard hoodie drawing**), and the measurement table. The sample size column is highlighted.
+   - **09 Colours, labels, packaging & wash**.
+   - **10 Quantities & progress**: pieces per colour and size (these columns are also your size range), plus the progress tracker.
+   - **11 Notes**: tick **Client** for notes the client should see.
+   - **12 Costing**: opens the costing page.
+4. Above the preview, choose **Factory Version** or **Client Version**.
+   - **Factory → Save PDF**: the print window opens. Choose **Save as PDF** (iPhone: tap **Share** → **Save to Files**). Text stays sharp. When you close the print window, the app goes straight to **Costing**.
+   - **PDF file (picture)**: a backup way to make the PDF if the print window gives trouble.
+   - **Client → Save JPG pictures**: one picture per page, with **Share** on the phone (WhatsApp, Instagram). **Save PDF** works for the client copy too.
+5. Before saving, the app shows a friendly **check list**: total order vs. quantities, units on sizes and measurements, description vs. garment type. You can fix them first or continue anyway.
+6. **Costing**: type the costs (empty boxes count as zero) and press **Save to Costing Sheet**.
+7. **📊 Costing Sheet** (top bar): all orders, **Download Excel file**.
+8. On the start screen, **Duplicate** copies an old tech pack for a new order.
+
+**The Factory PDF** has 4 pages: Overview & Colourways · Artwork & Points of Interest · Materials, Trims & Hardware · Measurements & Production.
+**The Client copy** has 3 pages. It never shows costs, fabric stores, suppliers, pattern codes or the progress tracker.
+If something is too long for a page (many trims or notes), it continues on an extra page with the same header and footer. Empty sections are left out.
 
 How some costs are worked out:
 - **Shipping**: total kg for the whole order × price per kg, then divided by the number of pieces.
 - **One-off costs** (sample, screen setup and so on): divided by the number of pieces.
 - **Custom labels, tags and bags**: the fixed price (from Settings) ÷ the quantity you type, for example 8,000 ÷ 100 = 80 PKR per poly bag.
+
+**Settings** also has: the footer website / Instagram (`@blaze_impex`), your own logo (leave empty for the Blaze Impex logo), and an on/off switch for automatic background removal.
 
 ---
 
@@ -86,19 +107,23 @@ How some costs are worked out:
 | File | What it does |
 |---|---|
 | `index.html` | The page that loads everything |
-| `css/styles.css` | Colours and layout. Part 1 is the app screens; Part 2 is the PDF/JPG tech pack design |
+| `css/styles.css` | How the app screens look |
+| `css/techpack.css` | How the tech pack pages look (A4 landscape design system, also used for printing) |
 | `js/core.js` | Small shared tools (buttons, pop-ups, messages, downloads, sharing) |
 | `js/db.js` | Saving on the device |
-| `js/model.js` | What a tech pack contains, totals, deadline warning, duplicating |
+| `js/model.js` | What a tech pack contains, totals, checks before export, deadline warning, duplicating, upgrading old tech packs |
 | `js/settings.js` | Settings page and backup / restore |
-| `js/images.js` | Uploading pictures, background removal, crop / rotate / size |
+| `js/images.js` | Uploading pictures, automatic background removal + undo, crop / rotate / size |
+| `js/assets.js` | Built-in Blaze Impex logos and the standard hoodie measuring drawing |
+| `js/sample.js`, `js/sample-images.js` | The Glory Hoodie example |
+| `js/doc.js` | Builds the tech pack pages (factory and client), continues long sections on extra pages |
+| `js/export.js` | Sharp PDF (print), picture PDF, client JPGs |
 | `js/home.js` | Start screen |
-| `js/editor.js` | Details form |
-| `js/sheets.js` | Factory and Client tech pack layouts |
-| `js/export.js` | Making the PDF and the JPG |
+| `js/editor.js` | Tech pack screen: numbered form sections + live preview |
 | `js/costing.js` | Costing page, Costing Sheet and Excel |
-| `js/app.js` | Moving between screens |
+| `js/app.js` | Moving between screens, top bar |
 | `sw.js`, `manifest.webmanifest`, `icons/` | iPhone home screen icon and offline use |
-| `vendor/` | Free helper libraries (PDF, picture, Excel) |
+| `vendor/`, `fonts/` | Free helper libraries (PDF, picture, Excel) and the Inter fonts |
+| `PREMIUM-UPGRADE.md`, `techpack-maker.html`, `Blaze Impex - Glory Hoodie Tech Pack.pdf` | The design brief and reference files (not used by the app) |
 
-Free tools used: html2canvas, jsPDF, SheetJS, IMG.LY background removal (loaded only when you press "Remove background").
+Free tools used: html2canvas, jsPDF, SheetJS, IMG.LY background removal (loaded from the internet only when a background is removed), Inter and Inter Tight fonts.
